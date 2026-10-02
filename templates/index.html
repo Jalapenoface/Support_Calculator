@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>eConcordia Course Support </title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">eConcordia analytics</p>
+        <h1>Course Support</h1>
+        <p class="lede">Cost, expected support, efficiency, scale context, value, and optional course-history trends — without composite heuristic grades.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn secondary" id="pdfBtn">Download PDF</button>
+        <button class="btn primary" id="excelBtn">Download Excel</button>
+      </div>
+    </header>
+
+    <section class="identity-card card">
+      <div class="field-grid identity-grid">
+        <label>Course<input id="course_name" placeholder="Enter course name"></label>
+        <label>Faculty<input id="faculty_name" placeholder="Enter faculty name"></label>
+        <label>Department<input id="department" placeholder="Enter department"></label>
+      </div>
+    </section>
+
+    <div class="layout-grid">
+      <aside class="left-column">
+        <section class="card input-card">
+          <h2>Current Course Metrics</h2>
+          <label>Enrollment Count<input id="enrollment" type="number" min="0" step="1" value="{{ model_config.defaults.enrollment }}"></label>
+          <label>Total SM Hours (per semester)<input id="hours" type="number" min="0" step="0.1" value="{{ model_config.defaults.hours }}"></label>
+          <label>Complexity Score (1–10)
+            <select id="complexity">
+              {% for value in range(model_config.complexity_scale.min|int, (model_config.complexity_scale.max|int) + 1) %}
+              <option value="{{ value }}" {% if value == model_config.complexity_scale.default|int %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Student Satisfaction (%) <span class="optional">optional</span>
+            <div class="inline-input">
+              <input id="satisfaction" type="number" min="0" max="100" step="0.1" value="{{ model_config.defaults.satisfaction }}">
+              <button class="mini-btn" type="button" data-clear="satisfaction">N/A</button>
+            </div>
+          </label>
+          <label>Hourly Rate ($)<input id="hourly_rate" type="number" min="0" step="0.01" value="{{ model_config.defaults.hourly_rate }}"></label>
+        </section>
+
+        <section class="card compact-card">
+          <h2>Model Drivers</h2>
+          <div class="driver-line"><span>Complexity effect</span><strong id="complexityRate">+{{ "%.2f"|format(model_config.expected_support.regression.complexity_coefficient) }} h / point</strong></div>
+          <div class="driver-line"><span>Enrollment effect</span><strong id="enrollmentRate">+{{ "%.2f"|format(model_config.expected_support.regression.enrollment_coefficient * 100) }} h / 100</strong></div>
+          <div class="driver-line"><span>Historical model fit</span><strong id="modelR2">{{ "%.1f"|format(model_config.expected_support.regression.r_squared * 100) }}% R²</strong></div>
+          <p class="small-note">Complexity effect is from the verified refit using the whole-number 1–10 complexity scale (N={{ model_config.expected_support.regression.sample_size }}). R² is variation explained by the historical model, not prediction accuracy.</p>
+        </section>
+
+        <details class="card optional-card">
+          <summary>Operational Context <span>optional</span></summary>
+          <div class="details-body">
+            <label>Technical context
+              <select id="tech_severity">
+                <option value="">N/A</option>
+                {% for k,v in tech.items() %}<option value="{{k}}">{{k}} — {{v}}</option>{% endfor %}
+              </select>
+            </label>
+            <label>Technical notes<textarea id="tech_notes" rows="3" placeholder="Optional notes"></textarea></label>
+            <label>Instructional-team context
+              <select id="team_severity">
+                <option value="">N/A</option>
+                {% for k,v in team.items() %}<option value="{{k}}">{{k}} — {{v}}</option>{% endfor %}
+              </select>
+            </label>
+            <label>Team notes<textarea id="team_notes" rows="3" placeholder="Optional notes"></textarea></label>
+          </div>
+        </details>
+      </aside>
+
+      <section class="right-column">
+        <div class="metric-grid top-metrics">
+          <article class="metric-card accent">
+            <span class="metric-title">Total Support Cost</span>
+            <strong id="totalCost">$0</strong>
+            <span class="metric-sub">per semester</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Expected Support</span>
+            <strong id="expectedHours">0 h</strong>
+            <span class="metric-sub">complexity + enrollment benchmark; minimum {{ model_config.expected_support.minimum_hours|int }} h</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Actual vs Expected</span>
+            <strong id="varianceHours">0 h</strong>
+            <span class="metric-sub" id="variancePct">0%</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Efficiency vs Benchmark</span>
+            <strong id="efficiencyRatio">N/A</strong>
+            <span class="metric-sub">100% = expected workload</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Cost / Student</span>
+            <strong id="costPerStudent">N/A</strong>
+            <span class="metric-sub">actual support cost</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Variable Support / Student</span>
+            <strong id="variableCostPerStudent">N/A</strong>
+            <span class="metric-sub">after {{ model_config.expected_support.minimum_hours|int }} h operating baseline</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Adjusted Support / Student</span>
+            <strong id="adjustedMinutes">N/A</strong>
+            <span class="metric-sub">minutes after fixed baseline</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-title">Cost / Satisfied Student</span>
+            <strong id="costSatisfied">N/A</strong>
+            <span class="metric-sub">requires satisfaction data</span>
+          </article>
+          <article class="metric-card wide-card">
+            <div>
+              <span class="metric-title">Benchmark Cost Difference</span>
+              <strong id="benchmarkCostDiff">$0</strong>
+            </div>
+            <span class="metric-sub">Actual support cost minus model-benchmark support cost. Negative = below benchmark; positive = above.</span>
+          </article>
+        </div>
+
+        <section class="card scale-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Portfolio scale context</p>
+              <h2>Enrollment Scale</h2>
+            </div>
+            <div class="scale-pill" id="scaleBand">—</div>
+          </div>
+          <div class="scale-grid">
+            <div>
+              <span class="metric-title">Historical SM Hours</span>
+              <strong class="scale-number" id="marginalBurden">N/A</strong>
+              <p class="small-note">Additional SM hours per 10 additional students, controlling for complexity.</p>
+            </div>
+            <div class="scale-explainer" id="scaleInterpretation">—</div>
+          </div>
+        </section>
+
+        <section class="card history-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Optional</p>
+              <h2>Course History & Durability</h2>
+              <p class="small-note">Enter up to three prior runs. Use N/A when data are unavailable or you want a quick current-course assessment.</p>
+            </div>
+            <button class="btn ghost" id="toggleHistory" type="button">Show history inputs</button>
+          </div>
+
+          <div id="historyInputs" class="history-inputs hidden">
+            <div class="history-row history-head">
+              <span>Run</span><span>Use?</span><span>Enrollment</span><span>SM Hours</span><span>Complexity</span><span>Satisfaction</span>
+            </div>
+            {% for n,label in [(3,'Previous 3 (oldest)'),(2,'Previous 2'),(1,'Previous 1')] %}
+            <div class="history-row" data-history="{{n}}">
+              <span class="history-label">{{label}}</span>
+              <label class="check-label"><input class="hist-enabled" type="checkbox"> Include</label>
+              <input class="hist-enrollment" type="number" min="0" step="1" placeholder="N/A" disabled>
+              <input class="hist-hours" type="number" min="0" step="0.1" placeholder="N/A" disabled>
+              <select class="hist-complexity" disabled>
+                <option value="">N/A</option>
+                {% for value in range(model_config.complexity_scale.min|int, (model_config.complexity_scale.max|int) + 1) %}
+                <option value="{{ value }}">{{ value }}</option>
+                {% endfor %}
+              </select>
+              <input class="hist-satisfaction" type="number" min="0" max="100" step="0.1" placeholder="N/A" disabled>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="history-status" id="historyLevel">N/A — current run only</div>
+          <div class="history-metrics">
+            <article><span>Support Drift</span><strong id="supportDrift">N/A</strong><small id="supportDriftNote">Needs at least {{ model_config.history.minimum_runs_for_trend }} total runs</small></article>
+            <article><span>Complexity Change</span><strong id="complexityChange">N/A</strong><small>Current minus oldest entered run</small></article>
+            <article><span>Satisfaction Change</span><strong id="satisfactionChange">N/A</strong><small>Change from oldest available run</small></article>
+            <article><span>Enrollment Change</span><strong id="enrollmentChange">N/A</strong><small>Current vs oldest entered run</small></article>
+            <article><span>Efficiency Stability</span><strong id="efficiencyStability">N/A</strong><small>100% = perfectly stable; lower = more variable</small></article>
+            <article><span>Support Variance Change</span><strong id="varianceChange">N/A</strong><small>Change from oldest entered run</small></article>
+          </div>
+          <div class="history-table-wrap">
+            <table id="historyTable">
+              <thead><tr><th>Run</th><th>Enroll.</th><th>Actual h</th><th>Expected h</th><th>Variance</th><th>Complexity</th><th>Satisfaction</th></tr></thead>
+              <tbody><tr><td colspan="7" class="muted-cell">No prior runs entered.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card insights-card">
+          <h2>Key Insights</h2>
+          <div id="insights"></div>
+        </section>
+      </section>
+    </div>
+
+    <footer>
+      Expected support uses a historical multiple-regression benchmark with a {{ model_config.expected_support.minimum_hours|int }}-hour minimum operating floor. Scale-band slopes are descriptive portfolio context. Missing historical data remain N/A and are never treated as zero.
+    </footer>
+  </main>
+
+<script>
+const byId = id => document.getElementById(id);
+const ids = ['course_name','faculty_name','department','enrollment','hours','complexity','satisfaction','hourly_rate','tech_severity','team_severity','tech_notes','team_notes'];
+let lastResult = null;
+
+function numOrNull(v){
+  if(v === '' || v === null || v === undefined) return null;
+  const n = Number(v); return Number.isFinite(n) ? n : null;
+}
+function fmtMoney(v){ return v == null ? 'N/A' : new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',minimumFractionDigits:2}).format(v); }
+function fmtNum(v,d=1){ return v == null ? 'N/A' : Number(v).toFixed(d); }
+function signed(v,d=1,suffix=''){ if(v == null) return 'N/A'; const n=Number(v); return `${n>=0?'+':''}${n.toFixed(d)}${suffix}`; }
+
+function historyPayload(){
+  const rows = [...document.querySelectorAll('[data-history]')];
+  return rows.map(row => ({
+    label: row.querySelector('.history-label').textContent,
+    enabled: row.querySelector('.hist-enabled').checked,
+    enrollment: numOrNull(row.querySelector('.hist-enrollment').value),
+    hours: numOrNull(row.querySelector('.hist-hours').value),
+    complexity: numOrNull(row.querySelector('.hist-complexity').value),
+    satisfaction: numOrNull(row.querySelector('.hist-satisfaction').value)
+  }));
+}
+
+function payload(){
+  const d = {};
+  ids.forEach(id => d[id] = byId(id).value);
+  d.history = historyPayload();
+  return d;
+}
+
+async function recalc(){
+  const res = await fetch('/api/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
+  const r = await res.json(); lastResult = r; render(r);
+}
+
+function render(r){
+  byId('totalCost').textContent = fmtMoney(r.total_cost);
+  byId('expectedHours').textContent = `${fmtNum(r.expected_hours,1)} h`;
+  byId('varianceHours').textContent = signed(r.support_variance_hours,1,' h');
+  byId('variancePct').textContent = signed(r.support_variance_pct,1,'% vs benchmark');
+  byId('efficiencyRatio').textContent = r.efficiency_ratio == null ? 'N/A' : `${fmtNum(r.efficiency_ratio,1)}%`;
+  byId('costPerStudent').textContent = fmtMoney(r.cost_per_student);
+  byId('variableCostPerStudent').textContent = fmtMoney(r.variable_support_cost_per_student);
+  byId('adjustedMinutes').textContent = r.baseline_adjusted_minutes_per_student == null ? 'N/A' : `${fmtNum(r.baseline_adjusted_minutes_per_student,1)} min`;
+  byId('costSatisfied').textContent = fmtMoney(r.cost_per_satisfied_student);
+  byId('benchmarkCostDiff').textContent = r.benchmark_cost_difference == null ? 'N/A' : `${r.benchmark_cost_difference>=0?'+':''}${fmtMoney(r.benchmark_cost_difference)}`;
+
+  byId('complexityRate').textContent = `+${fmtNum(r.complexity_hours_per_point,2)} h / point`;
+  byId('enrollmentRate').textContent = `+${fmtNum(r.enrollment_hours_per_100,2)} h / 100`;
+  byId('modelR2').textContent = `${fmtNum(r.model_r2*100,1)}% R²`;
+
+  byId('scaleBand').textContent = r.scale_context.band;
+  byId('marginalBurden').textContent = r.scale_context.operational_marginal_hours_per_10 == null ? 'N/A' : `${fmtNum(r.scale_context.operational_marginal_hours_per_10,2)} h / +10`;
+  byId('scaleInterpretation').textContent = r.scale_context.interpretation;
+
+  const h = r.history;
+  byId('historyLevel').textContent = h.n_runs === 1 ? 'N/A — current run only' : `${h.history_level} · ${h.n_runs} total runs`;
+  byId('supportDrift').textContent = h.support_drift_pp_per_run == null ? 'N/A' : signed(h.support_drift_pp_per_run,1,'%/run');
+  byId('supportDriftNote').textContent = h.n_runs < {{ model_config.history.minimum_runs_for_trend }} ? 'Needs at least {{ model_config.history.minimum_runs_for_trend }} total runs' : 'Slope of support variance across runs';
+  byId('complexityChange').textContent = h.complexity_change == null ? 'N/A' : signed(h.complexity_change,1);
+  byId('satisfactionChange').textContent = h.satisfaction_change_pp == null ? 'N/A' : signed(h.satisfaction_change_pp,1,'%');
+  byId('enrollmentChange').textContent = h.enrollment_change_pct == null ? 'N/A' : signed(h.enrollment_change_pct,1,'%');
+  byId('efficiencyStability').textContent = h.efficiency_stability_score_pct == null ? 'N/A' : `${fmtNum(h.efficiency_stability_score_pct,1)}%`;
+  byId('varianceChange').textContent = h.support_variance_change_pp == null ? 'N/A' : signed(h.support_variance_change_pp,1,'%');
+
+  const tbody = byId('historyTable').querySelector('tbody');
+  if(h.n_runs <= 1){
+    tbody.innerHTML = '<tr><td colspan="7" class="muted-cell">No prior runs entered.</td></tr>';
+  } else {
+    tbody.innerHTML = h.rows.map(row => `<tr>
+      <td>${row.label}</td><td>${fmtNum(row.enrollment,0)}</td><td>${fmtNum(row.hours,1)}</td><td>${fmtNum(row.expected_hours,1)}</td>
+      <td>${signed(row.variance_pct,1,'%')}</td><td>${fmtNum(row.complexity,0)}</td><td>${row.satisfaction==null?'N/A':fmtNum(row.satisfaction,0)+'%'}</td>
+    </tr>`).join('');
+  }
+
+  byId('insights').innerHTML = r.insights.map(x => `<div class="insight"><span>→</span><p>${x}</p></div>`).join('');
+}
+
+function bindHistory(){
+  document.querySelectorAll('.hist-enabled').forEach(cb => cb.addEventListener('change', e => {
+    const row = e.target.closest('[data-history]');
+    row.querySelectorAll('input:not(.hist-enabled), select').forEach(inp => { inp.disabled = !e.target.checked; if(!e.target.checked) inp.value=''; });
+    recalc();
+  }));
+  document.querySelectorAll('[data-history] input:not(.hist-enabled)').forEach(inp => inp.addEventListener('input', recalc));
+  document.querySelectorAll('[data-history] select').forEach(sel => sel.addEventListener('change', recalc));
+}
+
+byId('toggleHistory').addEventListener('click',()=>{
+  byId('historyInputs').classList.toggle('hidden');
+  byId('toggleHistory').textContent = byId('historyInputs').classList.contains('hidden') ? 'Show history inputs' : 'Hide history inputs';
+});
+
+document.querySelectorAll('[data-clear]').forEach(btn => btn.addEventListener('click',()=>{ byId(btn.dataset.clear).value=''; recalc(); }));
+['enrollment','hours','satisfaction','hourly_rate','tech_severity','team_severity'].forEach(id => byId(id).addEventListener('input', recalc));
+byId('complexity').addEventListener('change', recalc);
+['course_name','faculty_name','department','tech_notes','team_notes'].forEach(id => byId(id).addEventListener('change', recalc));
+bindHistory();
+
+async function download(kind){
+  const res = await fetch(`/download/${kind}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
+  if(!res.ok){ alert('Download failed.'); return; }
+  const blob = await res.blob();
+  const disp = res.headers.get('Content-Disposition') || '';
+  const match = disp.match(/filename="?([^";]+)"?/i);
+  const filename = match ? match[1] : `course-scorecard.${kind==='pdf'?'pdf':'xlsx'}`;
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+byId('pdfBtn').addEventListener('click',()=>download('pdf'));
+byId('excelBtn').addEventListener('click',()=>download('excel'));
+
+recalc();
+</script>
+</body>
+</html>
