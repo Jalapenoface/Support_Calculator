@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">eConcordia analytics</p>
         <h1>Course Support</h1>
-        <p class="lede">Cost, expected support, efficiency, scale context, value, and optional course-history trends — without composite heuristic grades.</p>
+        <p class="lede">Cost, expected support, efficiency, scale context, value, and optional course-history trends.</p>
       </div>
       <div class="header-actions">
         <button class="btn secondary" id="pdfBtn">Download PDF</button>
@@ -55,7 +55,7 @@
           <div class="driver-line"><span>Complexity effect</span><strong id="complexityRate">+{{ "%.2f"|format(model_config.expected_support.regression.complexity_coefficient) }} h / point</strong></div>
           <div class="driver-line"><span>Enrollment effect</span><strong id="enrollmentRate">+{{ "%.2f"|format(model_config.expected_support.regression.enrollment_coefficient * 100) }} h / 100</strong></div>
           <div class="driver-line"><span>Historical model fit</span><strong id="modelR2">{{ "%.1f"|format(model_config.expected_support.regression.r_squared * 100) }}% R²</strong></div>
-          <p class="small-note">Complexity effect is from the verified refit using the whole-number 1–10 complexity scale (N={{ model_config.expected_support.regression.sample_size }}). R² is variation explained by the historical model, not prediction accuracy.</p>
+          <p class="small-note">Complexity effect uses the whole-number 1–10 complexity scale (N={{ model_config.expected_support.regression.sample_size }}). R² is variation explained by the historical model, not prediction accuracy.</p>
         </section>
 
         <details class="card optional-card">
@@ -204,7 +204,7 @@
     </div>
 
     <footer>
-      Expected support uses a historical multiple-regression benchmark with a {{ model_config.expected_support.minimum_hours|int }}-hour minimum operating floor. Scale-band slopes are descriptive portfolio context. Missing historical data remain N/A and are never treated as zero.
+      Expected support uses a historical multiple-regression benchmark with a {{ model_config.expected_support.minimum_hours|int }}-hour minimum operating floor. Missing historical data remain N/A and are never treated as zero.
     </footer>
   </main>
 
