@@ -33,9 +33,9 @@ app = Flask(__name__)
 
 TECH = {
     1: "Platform remained stable; support was focused on routine instructional delivery.",
-    2: "Minor tool or link friction; resolved with routine maintenance.",
-    3: "Recurring tool friction or peak-period issues required reactive support.",
-    4: "Major tool failure or outage materially increased support demand.",
+    2: "Minor tool or assessment friction; resolved with routine maintenance.",
+    3: "Recurring tool or assessment friction or peak-period issues required reactive support.",
+    4: "Major tool or assessment failure or outage materially increased support demand.",
     5: "Critical infrastructure failure severely affected course operations.",
 }
 
@@ -257,7 +257,7 @@ def download_pdf():
 
     story += [Paragraph("Method note", h2)]
     story += [Paragraph(
-        "The rebuilt scorecard avoids the prior heuristic Vitality, Pedagogical ROI, Resource Utilization, and Scalability scores. "
+        "The support calculator is based on a combination of historical data and other coefficients. All information is available in the Read Me document. "
         f"Expected support uses the historical complexity + enrollment regression with a {OPERATING_BASELINE_HOURS:g}-hour minimum operating floor. Longitudinal metrics are only calculated when enough prior runs are supplied; missing history remains N/A rather than being treated as zero. Model parameters are centralized in model_config.py.",
         small,
     )]
@@ -280,7 +280,7 @@ def download_excel():
     dark = "334155"
     light = "F8FAFC"
 
-    ws["A1"] = "eConcordia Course Support Scorecard"
+    ws["A1"] = "eConcordia Course Support Calculator"
     ws["A1"].font = Font(size=18, bold=True, color=maroon)
     ws.merge_cells("A1:C1")
 
