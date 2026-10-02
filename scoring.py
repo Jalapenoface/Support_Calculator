@@ -118,9 +118,9 @@ def scale_context(enrollment: float) -> dict:
             if observed_per10 < 0:
                 interp = "Historical enrollment slope is slightly negative; operationally this is interpreted as approximately zero positive SM cost."
             elif operational < 1:
-                interp = "Historical marginal SM cost is low at this enrollment scale."
+                interp = "Historical marginal SM cost is low at this enrollment scale, minimal cost for adding more students."
             else:
-                interp = "Historical marginal SM cost remains measurable at this enrollment scale."
+                interp = "Historical marginal SM cost remains measurable at this enrollment scale, measurable cost for adding more students."
             return {
                 "band": label,
                 "observed_marginal_hours_per_10": observed_per10,
